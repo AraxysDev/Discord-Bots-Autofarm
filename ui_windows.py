@@ -611,7 +611,7 @@ class SelfBotClient(discord.Client):
         if str(message.channel.id) not in self.framework.channels:
             return
 
-        # Core hook: Render interception payload directly onto the live feed layout
+        # Render interception payload directly onto the live feed layout
         if self.framework.dashboard:
             # Reconstruct basic flat dictionaries representing attachments and embed payloads
             serialized_attachments = [a.url for a in message.attachments] if message.attachments else None
@@ -627,14 +627,32 @@ class SelfBotClient(discord.Client):
                         embed_payload['image'] = {'url': e.image.url}
                     serialized_embeds.append(embed_payload)
 
-            # Offload UI manipulation execution directly into main layout worker thread safely
-            self.framework.dashboard.feed_frame.after(0, lambda: self.framework.dashboard.render_discord_message(
-                message.author.name,
-                message.author.avatar.url if message.author.avatar else None,
-                message.content,
-                attachments=serialized_attachments,
-                embeds=serialized_embeds if serialized_embeds else None
-            ))
+            # Isolate the dashboard reference locally
+            dashboard = self.framework.dashboard
+
+            # Verify the dashboard window and feed_frame widget actively exist
+            if hasattr(dashboard, 'feed_frame') and dashboard.feed_frame:
+                if dashboard.feed_frame.winfo_exists():
+
+                    # Capture current message states cleanly into local variables
+                    author_name = message.author.name
+                    author_avatar = message.author.avatar.url if message.author.avatar else None
+                    content = message.content
+                    embeds_payload = serialized_embeds if serialized_embeds else None
+
+                    # Define an explicit, safe worker function to run on the main UI thread
+                    def safe_render():
+                        if hasattr(dashboard, 'feed_frame') and dashboard.feed_frame.winfo_exists():
+                            dashboard.render_discord_message(
+                                author_name,
+                                author_avatar,
+                                content,
+                                attachments=serialized_attachments,
+                                embeds=embeds_payload
+                            )
+
+                    # Offload UI manipulation safely into the main layout worker thread
+                    dashboard.feed_frame.after(0, safe_render)
 
         # Push payload objects information safely down to targeted backend bots loops configurations
         for bot in self.framework.active_bots:

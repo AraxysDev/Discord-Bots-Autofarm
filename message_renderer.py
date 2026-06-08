@@ -19,6 +19,10 @@ os.makedirs(CACHE_DIR, exist_ok=True)
 def render_discord_message(dashboard, author_name, author_avatar_url, content, attachments=None, embeds=None):
     '''Dynamically renders incoming Discord chat events with sequential stacking layout.'''
 
+    # Ensure the feed frame exists before attempting to render
+    if not hasattr(dashboard, 'feed_frame') or not dashboard.feed_frame.winfo_exists():
+        return
+
     # Clean up formatting strings from content
     if content:
         content = content.replace('**', '')
