@@ -10,6 +10,7 @@ import tkinter.font as tkfont
 import customtkinter as ctk
 from PIL import Image
 from datetime import datetime
+import emoji
 
 # Setup global variables
 CACHE_DIR = '/Applications/PhobosClient/cache/DiscordBotsAutofarm'
@@ -23,9 +24,19 @@ def render_discord_message(dashboard, author_name, author_avatar_url, content, a
     if not hasattr(dashboard, 'feed_frame') or not dashboard.feed_frame.winfo_exists():
         return
 
-    # Clean up formatting strings from content
+    # Check scrollbar position
+    auto_scroll_allowed = False
+    if hasattr(dashboard.feed_frame, '_parent_canvas'):
+        dashboard.feed_frame.update_idletasks()
+        _, bottom_fraction = dashboard.feed_frame._parent_canvas.yview()
+        # If user is at the very bottom, we allow this specific message to auto-scroll
+        if bottom_fraction >= 0.99:
+            auto_scroll_allowed = True
+
+    # Clean up formatting strings and parse standard emoji aliases
     if content:
         content = content.replace('**', '')
+        content = emoji.emojize(content, language='alias')
 
     # Set up the main message container
     msg_container = ctk.CTkFrame(dashboard.feed_frame, fg_color='transparent')
@@ -112,6 +123,7 @@ def render_discord_message(dashboard, author_name, author_avatar_url, content, a
 
         def adjust_height_pixels(*args):
             try:
+                # Recalculate height
                 text_widget.update_idletasks()
                 pixel_measurement = text_widget.count('1.0', 'end', 'ypixels')
                 if pixel_measurement and pixel_measurement[0] > 0:
@@ -121,10 +133,6 @@ def render_discord_message(dashboard, author_name, author_avatar_url, content, a
                     calculated_h = ((lines[0] if lines else 1) * 19) + 8
 
                 text_container.configure(height=max(24, calculated_h))
-                msg_container.update_idletasks()
-                dashboard.feed_frame.update_idletasks()
-                if hasattr(dashboard.feed_frame, '_parent_canvas'):
-                    dashboard.feed_frame._parent_canvas.yview_moveto(1.0)
             except:
                 pass
 
@@ -215,14 +223,18 @@ def render_discord_message(dashboard, author_name, author_avatar_url, content, a
                         ctk_img = ctk.CTkImage(light_image=img_obj, dark_image=img_obj, size=(w, h))
                         label.configure(image=ctk_img, text='')
                         dashboard.image_cache[url] = ctk_img
-                        if hasattr(dashboard.feed_frame, '_parent_canvas'):
-                            dashboard.feed_frame._parent_canvas.yview_moveto(1.0)
+
+                        # Only pull the user down if they are still near the bottom when the image finishes
+                        if auto_scroll_allowed and hasattr(dashboard.feed_frame, '_parent_canvas'):
+                            dashboard.feed_frame.update_idletasks()
+                            _, current_bottom = dashboard.feed_frame._parent_canvas.yview()
+                            if current_bottom >= 0.85:
+                                dashboard.feed_frame._parent_canvas.yview_moveto(1.0)
                     except:
                         label.pack_forget()
 
                 def load_embed_image(url=img_url, label=embed_img_label):
                     try:
-                        # Fetch the image directly into memory without saving to disk
                         req = urllib.request.Request(url, headers={'User-Agent': 'Mozilla/5.0'})
                         with urllib.request.urlopen(req) as r:
                             raw_data = r.read()
@@ -237,7 +249,6 @@ def render_discord_message(dashboard, author_name, author_avatar_url, content, a
                     except:
                         label.after(0, lambda: label.pack_forget())
 
-                # Run embed graphic loading in a background thread
                 threading.Thread(target=load_embed_image, daemon=True).start()
 
             if 'image' in embed and isinstance(embed['image'], dict):
@@ -258,8 +269,13 @@ def render_discord_message(dashboard, author_name, author_avatar_url, content, a
                         ctk_img = ctk.CTkImage(light_image=img_obj, dark_image=img_obj, size=(w, h))
                         label.configure(image=ctk_img, text='')
                         dashboard.image_cache[url] = ctk_img
-                        if hasattr(dashboard.feed_frame, '_parent_canvas'):
-                            dashboard.feed_frame._parent_canvas.yview_moveto(1.0)
+
+                        # Smart check: Only pull the user down if they are still near the bottom when the image finishes
+                        if auto_scroll_allowed and hasattr(dashboard.feed_frame, '_parent_canvas'):
+                            dashboard.feed_frame.update_idletasks()
+                            _, current_bottom = dashboard.feed_frame._parent_canvas.yview()
+                            if current_bottom >= 0.85:
+                                dashboard.feed_frame._parent_canvas.yview_moveto(1.0)
                     except:
                         label.configure(text='[Image Failed to Render]')
 
@@ -277,9 +293,16 @@ def render_discord_message(dashboard, author_name, author_avatar_url, content, a
                     except:
                         label.after(0, lambda: label.configure(text='[Image Failed to Load]'))
 
-                # Run media attachment loading in a background thread
                 threading.Thread(target=load_attachment, daemon=True).start()
 
-    # Move scrollbar to bottom
-    if hasattr(dashboard.feed_frame, '_parent_canvas'):
-        dashboard.feed_frame._parent_canvas.yview_moveto(1.0)
+    # Move scrollbar to bottom once after the initial text rendering is complete
+    if auto_scroll_allowed and hasattr(dashboard.feed_frame, '_parent_canvas'):
+        def trigger_initial_scroll():
+            try:
+                dashboard.feed_frame.update_idletasks()
+                dashboard.feed_frame._parent_canvas.yview_moveto(1.0)
+            except:
+                pass
+
+        # Give Tkinter 100ms to physically draw and wrap the text before measuring the bottom
+        dashboard.feed_frame.after(100, trigger_initial_scroll)
