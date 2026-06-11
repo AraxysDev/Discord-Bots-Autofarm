@@ -17,7 +17,10 @@ class ProfileWindow:
         # Setup window properties
         self.master = master
         self.master.title('Phobos Client - Profiles')
-        self.master.geometry('500x400')
+        screen_width = self.master.winfo_screenwidth()
+        screen_height = self.master.winfo_screenheight()
+        self.master.geometry(f'500x400+{int((screen_width / 2) - (500 / 2))}+{int(((screen_height / 2) - (400 / 2)) * 0.5)}')
+        self.master.resizable(False, False)
 
         # Configure dark theme properties
         ctk.set_appearance_mode('dark')
@@ -192,7 +195,10 @@ class SettingsWindow:
         # Initialize primary application settings window view panel context
         self.master = master
         self.master.title(f'Settings - {profile_name}')
-        self.master.geometry('700x780')
+        screen_width = self.master.winfo_screenwidth()
+        screen_height = self.master.winfo_screenheight()
+        self.master.geometry(f'700x650+{int((screen_width / 2) - (700 / 2))}+{int(((screen_height / 2) - (650 / 2)) * 0.5)}')
+        self.master.resizable(False, False)
 
         # Configure standardized theme colors variables
         ctk.set_appearance_mode('dark')
@@ -211,28 +217,24 @@ class SettingsWindow:
         self.settings = profile_data.get('settings', {})
         self.on_start = on_start
 
-        # Render clean vertical content scrolling context panels
-        self.main_scroll = ctk.CTkScrollableFrame(
-            self.master, fg_color='transparent'
-        )
-        self.main_scroll.pack(fill='both', expand=True, padx=10, pady=10)
-
-        # Hide default native scrollbars cleanly from direct sight lines
-        self.main_scroll._scrollbar.grid_forget()
+        # ================= HEADER & GLOBAL SETTINGS =================
+        header_frame = ctk.CTkFrame(self.master, fg_color='transparent')
+        header_frame.pack(fill='x', padx=20, pady=(20, 10))
 
         # Embed interface header display string
         ctk.CTkLabel(
-            self.main_scroll, text=f'Configure Bots for {profile_name}',
-            font=('Roboto', 20, 'bold'), text_color=self.accent
-        ).pack(pady=15)
+            header_frame, text=f'Configure Bots for {profile_name}',
+            font=('Roboto', 22, 'bold'), text_color=self.accent
+        ).pack(pady=(0, 15))
 
         # Render targets channels interactive processing controls layout fields
         ctk.CTkLabel(
-            self.main_scroll, text='Target Channel IDs (comma separated):',
+            header_frame, text='Target Channel IDs (comma separated):',
             font=('Roboto', 14), text_color=self.text_secondary
         ).pack()
+
         self.channel_entry = ctk.CTkEntry(
-            self.main_scroll, width=500,
+            header_frame, width=550, height=35,
             placeholder_text='e.g., 123456789, 987654321',
             fg_color=self.widget_bg, border_color=self.accent,
             text_color='white'
@@ -245,34 +247,44 @@ class SettingsWindow:
             saved_channels = ', '.join(saved_channels)
         self.channel_entry.insert(0, saved_channels)
 
-        # Build clean stylized separators borders across segments
-        sep1 = ctk.CTkFrame(self.main_scroll, height=2, fg_color=self.accent)
-        sep1.pack(fill='x', padx=30, pady=(15, 5))
+        # ================= TABBED INTERFACE =================
+        # Configure themed tab view to hold bot specific sections
+        self.tabview = ctk.CTkTabview(
+            self.master,
+            fg_color=self.widget_bg,
+            segmented_button_fg_color=self.bg,
+            segmented_button_selected_color=self.accent,
+            segmented_button_selected_hover_color=self.accent_hover,
+            segmented_button_unselected_color=self.bg,
+            segmented_button_unselected_hover_color=self.widget_bg,
+            text_color=self.text_primary,
+            corner_radius=10
+        )
+        self.tabview.pack(fill='both', expand=True, padx=30, pady=10)
 
-        # ============== OWO BOT INTERACTION SECTIONS ==============
+        # Add bot specific tabs
+        owo_tab = self.tabview.add('OwO Bot')
+        vf_tab = self.tabview.add('Virtual Fisher')
+
+        # ============== OWO BOT INTERACTION SECTIONS (TAB 1) ==============
         self.owo_var = tk.BooleanVar(value=self.settings.get('enable_owo', False))
         owo_switch = ctk.CTkSwitch(
-            self.main_scroll, text='OwO Bot', variable=self.owo_var,
-            font=('Roboto', 14, 'bold'),
+            owo_tab, text='Enable OwO Bot Autofarm', variable=self.owo_var,
+            font=('Roboto', 15, 'bold'),
             progress_color=self.accent, button_color=self.accent,
             button_hover_color=self.accent_hover
         )
-        owo_switch.pack(pady=(10, 5))
+        owo_switch.pack(pady=(15, 15))
 
         # Configure outer card accent panel details boundaries elements
-        border_bg_owo = ctk.CTkFrame(
-            self.main_scroll, fg_color=self.accent,
-            corner_radius=10
-        )
-        border_bg_owo.pack(fill='x', padx=40, pady=5)
+        border_bg_owo = ctk.CTkFrame(owo_tab, fg_color=self.accent, corner_radius=10)
+        border_bg_owo.pack(fill='both', expand=True, padx=20, pady=(0, 20))
 
         # Embed internal settings alignment components box frames safely
-        owo_frame = ctk.CTkFrame(
-            border_bg_owo, fg_color=self.widget_bg,
-            corner_radius=8
-        )
+        owo_frame = ctk.CTkFrame(border_bg_owo, fg_color=self.bg, corner_radius=8)
         owo_frame.pack(fill='both', expand=True, padx=2, pady=2)
 
+        # Retrieve specific OwO settings
         owo_s = self.settings.get('owo_settings', {})
 
         # Track functional toggles variables states safely
@@ -282,114 +294,81 @@ class SettingsWindow:
         self.owo_cookie_var = tk.BooleanVar(value=owo_s.get('auto_cookie', False))
         self.owo_pray_var = tk.BooleanVar(value=owo_s.get('auto_pray', False))
         self.owo_pets_var = tk.BooleanVar(value=owo_s.get('auto_pets', False))
-
         self.owo_sleep_var = tk.BooleanVar(value=owo_s.get('auto_sleep', False))
         self.owo_lootbox_var = tk.BooleanVar(value=owo_s.get('auto_lootbox', False))
         self.owo_crate_var = tk.BooleanVar(value=owo_s.get('auto_crate', False))
 
-        # Track strategic drop down strings variables fields values
         self.owo_autogem_choice = ctk.StringVar(value=owo_s.get('auto_gem') or 'None')
 
-        # Construct horizontal checkbox choice layouts rows - Sequence 1
-        r1 = ctk.CTkFrame(owo_frame, fg_color='transparent')
-        r1.pack(fill='x', pady=5)
-        ctk.CTkCheckBox(
-            r1, text='Auto Hunt', variable=self.owo_hunt_var,
-            fg_color=self.accent, border_color=self.accent,
-            checkmark_color='white', text_color=self.text_secondary
-        ).pack(side='left', padx=20)
-        ctk.CTkCheckBox(
-            r1, text='Auto Battle', variable=self.owo_battle_var,
-            fg_color=self.accent, border_color=self.accent,
-            checkmark_color='white', text_color=self.text_secondary
-        ).pack(side='left', padx=20)
-        ctk.CTkCheckBox(
-            r1, text='Auto Daily', variable=self.owo_daily_var,
-            fg_color=self.accent, border_color=self.accent,
-            checkmark_color='white', text_color=self.text_secondary
-        ).pack(side='left', padx=20)
+        # Checkbox grids wrapper
+        owo_grid = ctk.CTkFrame(owo_frame, fg_color='transparent')
+        owo_grid.pack(pady=20)
 
-        # Construct horizontal checkbox choice layouts rows - Sequence 2
-        r2 = ctk.CTkFrame(owo_frame, fg_color='transparent')
-        r2.pack(fill='x', pady=5)
-        ctk.CTkCheckBox(
-            r2, text='Auto Cookie', variable=self.owo_cookie_var,
-            fg_color=self.accent, border_color=self.accent,
-            checkmark_color='white', text_color=self.text_secondary
-        ).pack(side='left', padx=20)
-        ctk.CTkCheckBox(
-            r2, text='Auto Pray', variable=self.owo_pray_var,
-            fg_color=self.accent, border_color=self.accent,
-            checkmark_color='white', text_color=self.text_secondary
-        ).pack(side='left', padx=20)
-        ctk.CTkCheckBox(
-            r2, text='Auto Pets', variable=self.owo_pets_var,
-            fg_color=self.accent, border_color=self.accent,
-            checkmark_color='white', text_color=self.text_secondary
-        ).pack(side='left', padx=20)
+        # Construct horizontal checkbox choice layouts rows
+        cb_options = {
+            'fg_color': self.accent, 'border_color': self.accent,
+            'checkmark_color': 'white', 'text_color': self.text_secondary,
+            'font': ('Roboto', 13)
+        }
 
-        # Construct horizontal checkbox choice layouts rows - Sequence 3
-        r3 = ctk.CTkFrame(owo_frame, fg_color='transparent')
-        r3.pack(fill='x', pady=5)
-        ctk.CTkCheckBox(
-            r3, text='Auto Sleep', variable=self.owo_sleep_var,
-            fg_color=self.accent, border_color=self.accent,
-            checkmark_color='white', text_color=self.text_secondary
-        ).pack(side='left', padx=20)
-        ctk.CTkCheckBox(
-            r3, text='Auto Lootbox', variable=self.owo_lootbox_var,
-            fg_color=self.accent, border_color=self.accent,
-            checkmark_color='white', text_color=self.text_secondary
-        ).pack(side='left', padx=20)
-        ctk.CTkCheckBox(
-            r3, text='Auto Crates', variable=self.owo_crate_var,
-            fg_color=self.accent, border_color=self.accent,
-            checkmark_color='white', text_color=self.text_secondary
-        ).pack(side='left', padx=20)
+        # Row 1
+        r1 = ctk.CTkFrame(owo_grid, fg_color='transparent')
+        r1.pack(fill='x', pady=8)
+        ctk.CTkCheckBox(r1, text='Auto Hunt', variable=self.owo_hunt_var, **cb_options).pack(side='left', padx=15)
+        ctk.CTkCheckBox(r1, text='Auto Battle', variable=self.owo_battle_var, **cb_options).pack(side='left', padx=15)
+        ctk.CTkCheckBox(r1, text='Auto Daily', variable=self.owo_daily_var, **cb_options).pack(side='left', padx=15)
 
-        # Configure automation selection dropdown widgets layout frames blocks
+        # Row 2
+        r2 = ctk.CTkFrame(owo_grid, fg_color='transparent')
+        r2.pack(fill='x', pady=8)
+        ctk.CTkCheckBox(r2, text='Auto Cookie', variable=self.owo_cookie_var, **cb_options).pack(side='left', padx=15)
+        ctk.CTkCheckBox(r2, text='Auto Pray', variable=self.owo_pray_var, **cb_options).pack(side='left', padx=15)
+        ctk.CTkCheckBox(r2, text='Auto Pets', variable=self.owo_pets_var, **cb_options).pack(side='left', padx=15)
+
+        # Row 3
+        r3 = ctk.CTkFrame(owo_grid, fg_color='transparent')
+        r3.pack(fill='x', pady=8)
+        ctk.CTkCheckBox(r3, text='Auto Sleep', variable=self.owo_sleep_var, **cb_options).pack(side='left', padx=15)
+        ctk.CTkCheckBox(r3, text='Auto Lootbox', variable=self.owo_lootbox_var, **cb_options).pack(side='left', padx=15)
+        ctk.CTkCheckBox(r3, text='Auto Crates', variable=self.owo_crate_var, **cb_options).pack(side='left', padx=15)
+
+        # Dropdown configuration
+        owo_drop_frame = ctk.CTkFrame(owo_frame, fg_color='transparent')
+        owo_drop_frame.pack(fill='x', padx=35, pady=(10, 20))
+
         ctk.CTkLabel(
-            owo_frame, text='Auto Gem Strategy:', font=('Roboto', 12, 'bold'),
+            owo_drop_frame, text='Auto Gem:', font=('Roboto', 13, 'bold'),
             text_color=self.accent
-        ).pack(anchor='w', padx=20, pady=(10, 0))
-        ag_combo = ctk.CTkComboBox(
-            owo_frame, values=['None', 'Rarity low to high', 'Rarity high to low'],
-            variable=self.owo_autogem_choice,
-            width=180,
+        ).pack(side='left', padx=(0, 15))
+
+        ctk.CTkComboBox(
+            owo_drop_frame, values=['None', 'Rarity low to high', 'Rarity high to low'],
+            variable=self.owo_autogem_choice, width=200,
             fg_color=self.widget_bg, border_color=self.accent,
             button_color=self.accent, button_hover_color=self.accent_hover,
             dropdown_fg_color=self.widget_bg, dropdown_text_color='white',
             dropdown_hover_color=self.accent_hover
-        )
-        ag_combo.pack(padx=20, pady=(5, 10), anchor='w')
+        ).pack(side='left')
 
-        # Embed a secondary section separation break element layer
-        sep2 = ctk.CTkFrame(self.main_scroll, height=2, fg_color=self.accent)
-        sep2.pack(fill='x', padx=30, pady=(15, 5))
-
-        # ============== VIRTUAL FISHER SETUP INTERFACES ==============
+        # ============== VIRTUAL FISHER SETUP INTERFACES (TAB 2) ==============
         self.vf_var = tk.BooleanVar(value=self.settings.get('enable_vf', False))
         vf_switch = ctk.CTkSwitch(
-            self.main_scroll, text='Virtual Fisher', variable=self.vf_var,
-            font=('Roboto', 14, 'bold'),
+            vf_tab, text='Enable Virtual Fisher Autofarm', variable=self.vf_var,
+            font=('Roboto', 15, 'bold'),
             progress_color=self.accent, button_color=self.accent,
             button_hover_color=self.accent_hover
         )
-        vf_switch.pack(pady=(10, 5))
+        vf_switch.pack(pady=(15, 15))
 
         # Generate external matching container card layout frame
-        border_bg_vf = ctk.CTkFrame(
-            self.main_scroll, fg_color=self.accent,
-            corner_radius=10
-        )
-        border_bg_vf.pack(fill='x', padx=40, pady=5)
+        border_bg_vf = ctk.CTkFrame(vf_tab, fg_color=self.accent, corner_radius=10)
+        border_bg_vf.pack(fill='both', expand=True, padx=20, pady=(0, 20))
 
         # Append structured content mapping display frame blocks safely
-        vf_frame = ctk.CTkFrame(
-            border_bg_vf, fg_color=self.widget_bg,
-            corner_radius=8
-        )
+        vf_frame = ctk.CTkFrame(border_bg_vf, fg_color=self.bg, corner_radius=8)
         vf_frame.pack(fill='both', expand=True, padx=2, pady=2)
+
+        # Retrieve specific Virtual Fisher settings
         vf_s = self.settings.get('vf_settings', {})
 
         # Standardize parameter checkbox tracker configuration definitions
@@ -397,83 +376,60 @@ class SettingsWindow:
         self.vf_daily_var = tk.BooleanVar(value=vf_s.get('auto_daily', True))
         self.vf_sleep_var = tk.BooleanVar(value=vf_s.get('auto_sleep', False))
 
+        # Construct command row
         cmd_row = ctk.CTkFrame(vf_frame, fg_color='transparent')
-        cmd_row.pack(fill='x', pady=(10, 5))
-        ctk.CTkCheckBox(
-            cmd_row, text='Auto /fish', variable=self.vf_fish_var,
-            fg_color=self.accent, border_color=self.accent,
-            checkmark_color='white', text_color=self.text_secondary
-        ).pack(side='left', padx=20)
-        ctk.CTkCheckBox(
-            cmd_row, text='Auto /daily', variable=self.vf_daily_var,
-            fg_color=self.accent, border_color=self.accent,
-            checkmark_color='white', text_color=self.text_secondary
-        ).pack(side='left', padx=20)
-        ctk.CTkCheckBox(
-            cmd_row, text='Auto Sleep', variable=self.vf_sleep_var,
-            fg_color=self.accent, border_color=self.accent,
-            checkmark_color='white', text_color=self.text_secondary
-        ).pack(side='left', padx=20)
+        cmd_row.pack(pady=20)
+
+        ctk.CTkCheckBox(cmd_row, text='Auto /fish', variable=self.vf_fish_var, **cb_options).pack(side='left', padx=15)
+        ctk.CTkCheckBox(cmd_row, text='Auto /daily', variable=self.vf_daily_var, **cb_options).pack(side='left', padx=15)
+        ctk.CTkCheckBox(cmd_row, text='Auto Sleep', variable=self.vf_sleep_var, **cb_options).pack(side='left', padx=15)
 
         # Map current values strings into combo drop menu controls references variables
         self.auto_fish_choice = ctk.StringVar(value=vf_s.get('auto_type') or 'None')
         self.fish_bait_choice = ctk.StringVar(value=vf_s.get('fish_bait') or 'None')
         self.treasure_bait_choice = ctk.StringVar(value=vf_s.get('treasure_bait') or 'None')
 
-        # Establish buff combo interface configuration parameters views - Setup 1
-        ctk.CTkLabel(
-            vf_frame, text='Auto Fish Buff:', font=('Roboto', 12, 'bold'),
-            text_color=self.accent
-        ).pack(anchor='w', padx=20, pady=(10, 0))
-        af_combo = ctk.CTkComboBox(
-            vf_frame, values=['None', 'Auto10m', 'Auto30m'],
-            variable=self.auto_fish_choice,
-            fg_color=self.widget_bg, border_color=self.accent,
-            width=180,
-            button_color=self.accent, button_hover_color=self.accent_hover,
-            dropdown_fg_color=self.widget_bg, dropdown_text_color='white',
-            dropdown_hover_color=self.accent_hover
-        )
-        af_combo.pack(padx=20, pady=5, anchor='w')
+        # Dropdown configuration for Virtual Fisher
+        vf_drop_frame = ctk.CTkFrame(vf_frame, fg_color='transparent')
+        vf_drop_frame.pack(pady=10)
 
-        # Establish buff combo interface configuration parameters views - Setup 2
-        ctk.CTkLabel(
-            vf_frame, text='Fish Bait Buff:', font=('Roboto', 12, 'bold'),
-            text_color=self.accent
-        ).pack(anchor='w', padx=20, pady=(10, 0))
-        fb_combo = ctk.CTkComboBox(
-            vf_frame, values=['None', 'Fish5m', 'Fish20m'],
-            width=180,
-            fg_color=self.widget_bg, border_color=self.accent,
-            button_color=self.accent, button_hover_color=self.accent_hover,
-            dropdown_fg_color=self.widget_bg, dropdown_text_color='white',
-            dropdown_hover_color=self.accent_hover
-        )
-        fb_combo.pack(padx=20, pady=5, anchor='w')
+        # ComboBox Styling
+        combo_options = {
+            'width': 140, 'fg_color': self.widget_bg, 'border_color': self.accent,
+            'button_color': self.accent, 'button_hover_color': self.accent_hover,
+            'dropdown_fg_color': self.widget_bg, 'dropdown_text_color': 'white',
+            'dropdown_hover_color': self.accent_hover
+        }
 
-        # Establish buff combo interface configuration parameters views - Setup 3
-        ctk.CTkLabel(
-            vf_frame, text='Treasure Bait Buff:', font=('Roboto', 12, 'bold'),
-            text_color=self.accent
-        ).pack(anchor='w', padx=20, pady=(10, 0))
-        tb_combo = ctk.CTkComboBox(
-            vf_frame, values=['None', 'Treasure5m', 'Treasure20m'],
-            width=180,
-            variable=self.treasure_bait_choice,
-            fg_color=self.widget_bg, border_color=self.accent,
-            button_color=self.accent, button_hover_color=self.accent_hover,
-            dropdown_fg_color=self.widget_bg, dropdown_text_color='white',
-            dropdown_hover_color=self.accent_hover
-        )
-        tb_combo.pack(padx=20, pady=(5, 10), anchor='w')
+        # Setup 1
+        ctk.CTkLabel(vf_drop_frame, text='Auto Fish Buff:', font=('Roboto', 12, 'bold'), text_color=self.accent).grid(
+            row=0, column=0, sticky='w', padx=10, pady=(10, 0))
+        ctk.CTkComboBox(vf_drop_frame, values=['None', 'Auto10m', 'Auto30m'], variable=self.auto_fish_choice,
+                        **combo_options).grid(row=1, column=0, padx=10, pady=(5, 10))
+
+        # Setup 2
+        ctk.CTkLabel(vf_drop_frame, text='Fish Bait Buff:', font=('Roboto', 12, 'bold'), text_color=self.accent).grid(
+            row=0, column=1, sticky='w', padx=10, pady=(10, 0))
+        ctk.CTkComboBox(vf_drop_frame, values=['None', 'Fish5m', 'Fish20m'], variable=self.fish_bait_choice,
+                        **combo_options).grid(row=1, column=1, padx=10, pady=(5, 10))
+
+        # Setup 3
+        ctk.CTkLabel(vf_drop_frame, text='Treasure Bait Buff:', font=('Roboto', 12, 'bold'),
+                     text_color=self.accent).grid(row=0, column=2, sticky='w', padx=10, pady=(10, 0))
+        ctk.CTkComboBox(vf_drop_frame, values=['None', 'Treasure5m', 'Treasure20m'], variable=self.treasure_bait_choice,
+                        **combo_options).grid(row=1, column=2, padx=10, pady=(5, 10))
+
+        # ================= FOOTER =================
+        footer_frame = ctk.CTkFrame(self.master, fg_color='transparent')
+        footer_frame.pack(fill='x', padx=20, pady=(5, 20))
 
         # Setup runtime execution trigger buttons widget configurations
         ctk.CTkButton(
-            self.main_scroll, text='Save & Start Autofarm',
+            footer_frame, text='Save & Start Autofarm',
             fg_color=self.accent, hover_color=self.accent_hover,
-            font=('Roboto', 16, 'bold'), height=40,
+            font=('Roboto', 16, 'bold'), height=45, width=250,
             command=self.save_and_start
-        ).pack(pady=25)
+        ).pack(pady=10)
 
     def save_and_start(self):
         # Format user inputted strings channels mappings structures lists cleanly
@@ -528,6 +484,7 @@ class DashboardWindow:
         self.master = master
         self.master.title('Live Dashboard')
         self.master.geometry('850x750')
+        self.master.resizable(False, False)
         self.bot_framework = bot_framework
         self.go_back_callback = go_back_callback
 
