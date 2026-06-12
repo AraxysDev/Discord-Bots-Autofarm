@@ -209,6 +209,7 @@ class SettingsWindow:
         self.accent_hover = '#b62324'
         self.text_primary = '#f0f6fc'
         self.text_secondary = '#c9d1d9'
+        self.light_accent = '#595959'
         self.master.configure(fg_color=self.bg)
 
         # Store profile operational metadata definitions
@@ -251,11 +252,11 @@ class SettingsWindow:
         # Configure themed tab view to hold bot specific sections
         self.tabview = ctk.CTkTabview(
             self.master,
-            fg_color=self.widget_bg,
-            segmented_button_fg_color=self.bg,
+            fg_color=self.light_accent,
+            segmented_button_fg_color=self.light_accent,
             segmented_button_selected_color=self.accent,
-            segmented_button_selected_hover_color=self.accent_hover,
-            segmented_button_unselected_color=self.bg,
+            segmented_button_selected_hover_color=self.widget_bg,
+            segmented_button_unselected_color=self.widget_bg,
             segmented_button_unselected_hover_color=self.widget_bg,
             text_color=self.text_primary,
             corner_radius=10
@@ -483,7 +484,9 @@ class DashboardWindow:
         # Configure layout properties data records parameters trackers
         self.master = master
         self.master.title('Live Dashboard')
-        self.master.geometry('850x750')
+        screen_width = self.master.winfo_screenwidth()
+        screen_height = self.master.winfo_screenheight()
+        self.master.geometry(f'850x750+{int((screen_width / 2) - (850 / 2))}+{int(((screen_height / 2) - (750 / 2)) * 0.5)}')
         self.master.resizable(False, False)
         self.bot_framework = bot_framework
         self.go_back_callback = go_back_callback
