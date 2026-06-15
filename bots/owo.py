@@ -99,7 +99,7 @@ class OwoBot:
         commands = []
         state_changed = False
         batch_count = 0
-        batch_limit = 5
+        batch_limit = 3
 
         # Define all commands and their cooldowns in a clean, easily editable list
         action_configs = [
@@ -121,7 +121,7 @@ class OwoBot:
                     # Add to queue and set standard cooldown
                     commands.extend(cmds)
                     self.next_run[key] = now + random.uniform(min_cd, max_cd)
-                    batch_count += 1
+                    batch_count += len(cmds)
 
                 state_changed = True
 
