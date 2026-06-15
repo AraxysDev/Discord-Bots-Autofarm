@@ -189,6 +189,19 @@ class OwoBot:
                 if embed.footer and getattr(embed.footer, 'text', None):
                     full_text += f' {embed.footer.text}'
 
+            if not getattr(self.framework, 'client', None) or not self.framework.client.user:
+                return
+
+            # Curl user info
+            user_id = str(self.framework.client.user.id)
+            user_name = self.framework.client.user.name.lower()
+            user_display = self.framework.client.user.display_name.lower()
+            text_lower = full_text.lower()
+
+            # Check if message was directed towards the user
+            if not (user_id in text_lower or user_name in text_lower or user_display in text_lower):
+                return
+
             # Check if this text was just processed within 5 seconds
             current_time = time.time()
             if full_text == getattr(self, 'last_processed_text', '') and (
