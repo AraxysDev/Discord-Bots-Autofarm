@@ -95,45 +95,35 @@ class OwoBot:
         if self.settings.get('auto_sleep') and now < self.sleep_until:
             return []
 
-        # Initialize commands list and state flag
+        # Initialize variables and limits
         commands = []
         state_changed = False
+        batch_count = 0
+        batch_limit = 5
 
-        # Add combat command for hunt
-        if self.settings.get('auto_hunt') and now > self.next_run['hunt']:
-            commands.append('owo hunt')
-            self.next_run['hunt'] = now + random.uniform(18.0, 25.0)
-            state_changed = True
+        # Define all commands and their cooldowns in a clean, easily editable list
+        action_configs = [
+            ('auto_hunt', 'hunt', ['owo hunt'], 18.0, 25.0),
+            ('auto_battle', 'battle', ['owo battle'], 18.0, 24.0),
+            ('auto_daily', 'daily', ['owo daily'], 86400.0, 87000.0),
+            ('auto_cookie', 'cookie', ['owo cookie'], 86400.0, 87000.0),
+            ('auto_pray', 'pray', ['owo pray'], 600.0, 1200.0),
+            ('auto_pets', 'pets', ['owo pup', 'owo piku', 'owo run'], 120.0, 700.0)
+        ]
 
-        # Add combat command for battle
-        if self.settings.get('auto_battle') and now > self.next_run['battle']:
-            commands.append('owo battle')
-            self.next_run['battle'] = now + random.uniform(18.0, 24.0)
-            state_changed = True
+        # Dynamically process all actions
+        for setting, key, cmds, min_cd, max_cd in action_configs:
+            if self.settings.get(setting) and now > self.next_run[key]:
+                if batch_count >= batch_limit:
+                    # Delay for overflow
+                    self.next_run[key] = now + random.uniform(30.0, 60.0)
+                else:
+                    # Add to queue and set standard cooldown
+                    commands.extend(cmds)
+                    self.next_run[key] = now + random.uniform(min_cd, max_cd)
+                    batch_count += 1
 
-        # Add daily command
-        if self.settings.get('auto_daily') and now > self.next_run['daily']:
-            commands.append('owo daily')
-            self.next_run['daily'] = now + random.uniform(86400.0, 87000.0)
-            state_changed = True
-
-        # Add cookie command
-        if self.settings.get('auto_cookie') and now > self.next_run['cookie']:
-            commands.append('owo cookie')
-            self.next_run['cookie'] = now + random.uniform(86400.0, 87000.0)
-            state_changed = True
-
-        # Add social command for pray
-        if self.settings.get('auto_pray') and now > self.next_run['pray']:
-            commands.append('owo pray')
-            self.next_run['pray'] = now + random.uniform(600.0, 1200.0)
-            state_changed = True
-
-        # Add custom commands for pets
-        if self.settings.get('auto_pets') and now > self.next_run['pets']:
-            commands.extend(['owo pup', 'owo piku', 'owo run'])
-            self.next_run['pets'] = now + random.uniform(120.0, 700.0)
-            state_changed = True
+                state_changed = True
 
         # Randomize execution order to prevent patterns
         if commands:
