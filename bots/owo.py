@@ -224,7 +224,7 @@ class OwoBot:
                 return
 
             # Check for hunt notifications and track missing gems
-            if 'You found:' in full_text or 'hunt is empowered by' in full_text:
+            if 'You found:' in full_text or 'hunt is empowered by' in full_text or 'caught a' in full_text:
                 if 'Inventory' not in full_text:
                     equipped_gems = re.findall(r'<a?:[a-z]+(gem[134]):\d+>', full_text)
 
